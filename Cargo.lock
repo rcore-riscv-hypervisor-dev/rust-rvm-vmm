@@ -164,6 +164,7 @@ dependencies = [
  "isomorphic_drivers",
  "rlibc",
  "smoltcp",
+ "spin",
  "treebitmap",
 ]
 
@@ -216,7 +217,16 @@ name = "rust-rvm-vmm"
 version = "0.1.0"
 dependencies = [
  "rcore-user",
+ "rust-rvm-vmm-devices",
  "rvm",
+ "spin",
+]
+
+[[package]]
+name = "rust-rvm-vmm-devices"
+version = "0.1.0"
+dependencies = [
+ "spin",
 ]
 
 [[package]]

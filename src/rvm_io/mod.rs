@@ -15,6 +15,11 @@ pub const RVM_VCPU_READ_STATE: usize = RVM_IO + 0x13;
 pub const RVM_VCPU_WRITE_STATE: usize = RVM_IO + 0x14;
 pub const RVM_VCPU_INTERRUPT: usize = RVM_IO + 0x15;
 
+const RVM_RISCV_SET_SSIP: u32 = 0;
+const RVM_RISCV_CLEAR_SSIP: u32 = 1;
+const RVM_RISCV_SET_SEIP: u32 = 2;
+const RVM_RISCV_CLEAR_SEIP: u32 = 3;
+
 pub struct RVM {
     fd: usize,
     vmid: usize,
@@ -32,6 +37,7 @@ pub enum RVMError {
     AddMemoryRegionError(i32),
     CreateVcpuError(i32),
     ResumeError(i32),
+    SendInterruptError(i32),
 }
 use RVMError::*;
 pub type Result<T> = core::result::Result<T, RVMError>;
@@ -94,5 +100,29 @@ impl RVM {
         } else {
             return Ok(args.packet);
         }
+    }
+    fn interrupt(&self, vcpu_id: u16, arg: u32) -> Result<()> {
+        let args = RvmVcpuInterruptArgs {
+            vcpu_id,
+            vector: arg,
+        };
+        let ret = sys_ioctl(self.fd, RVM_VCPU_RESUME, &args as *const _ as usize);
+        if ret < 0 {
+            return Err(SendInterruptError(ret));
+        }
+        return Ok(());
+    }
+    pub fn set_interrupt_state(&self, vcpu_id: u16, sip: bool, eip: bool) -> Result<()> {
+        if sip {
+            self.interrupt(vcpu_id, RVM_RISCV_SET_SSIP)?;
+        } else {
+            self.interrupt(vcpu_id, RVM_RISCV_CLEAR_SSIP)?;
+        }
+        if eip {
+            self.interrupt(vcpu_id, RVM_RISCV_SET_SEIP)?;
+        } else {
+            self.interrupt(vcpu_id, RVM_RISCV_CLEAR_SEIP)?;
+        }
+        Ok(())
     }
 }

@@ -6,7 +6,10 @@ extern crate rcore_user;
 extern crate alloc;
 extern crate core;
 extern crate rvm;
+use alloc::sync::Arc;
 mod rvm_io;
+
+extern crate rust_rvm_vmm_devices as devices;
 
 fn read_file(path: &str, buf: &mut [u8]) -> Result<usize, i32> {
     use rcore_user::io::*;
@@ -22,9 +25,10 @@ fn read_file(path: &str, buf: &mut [u8]) -> Result<usize, i32> {
     }
     return Ok(len as usize);
 }
+
 fn rvm_main() -> rvm_io::Result<()> {
     println!("rust-rvm-vmm starting");
-    let vm = rvm_io::RVM::new("/dev/rvm")?;
+    let vm = Arc::new(rvm_io::RVM::new("/dev/rvm")?);
     let vm_image_path = "/vmm/rvloader.img";
     let mem = vm.add_memory_region(0x80200000, 128 * 1024 * 1024)?;
     read_file(vm_image_path, mem.data).unwrap();
