@@ -140,17 +140,113 @@ mod test {
             )
             .unwrap(); // enable irq for context 1.
         board.sw(PLIC_MMIO + SERIAL_IRQ * 4, 7).unwrap(); // set priority
+
+        // device ready.
         assert_eq!(
             plic_i.has_interrupt(),
             false,
             "Till now still no interrupt."
         );
-        // device ready.
-        stdconsole.send(1);
+        assert_ne!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_TXRDY,
+            0,
+            "Tx always ready."
+        );
+        assert_eq!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_DATA,
+            0,
+            "No data."
+        );
+        let DATA = 1;
+        stdconsole.send(DATA);
         // wait 100 ms.
         std::thread::sleep(std::time::Duration::from_millis(100));
         assert_eq!(plic_i.has_interrupt(), true, "Interrupt captured.");
         let pending = board.lw(PLIC_MMIO + 0x1000).unwrap();
         assert_eq!(pending, 1 << SERIAL_IRQ, "The irq is pending.");
+        let claim = board.lw(PLIC_MMIO + 0x201004).unwrap();
+        assert_eq!(claim, SERIAL_IRQ as u32, "Claimed.");
+        assert_eq!(
+            plic_i.has_interrupt(),
+            false,
+            "Interrupt captured but claimed."
+        );
+        assert_ne!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_DATA,
+            0,
+            "Data."
+        );
+        let data = board.lb(SERIAL_MMIO + COM_RX * MULTIPLIER).unwrap();
+        assert_eq!(data, DATA, "Data got.");
+        assert_eq!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_DATA,
+            0,
+            "No data."
+        );
+
+        board.sw(PLIC_MMIO + 0x201004, claim).unwrap();
+        assert_eq!(plic_i.has_interrupt(), false, "Interrupt handled.");
+        // test: two chars, two handlings.
+        stdconsole.send(DATA);
+        stdconsole.send(DATA + 1);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_eq!(plic_i.has_interrupt(), true, "Interrupt captured.");
+        let pending = board.lw(PLIC_MMIO + 0x1000).unwrap();
+        assert_eq!(pending, 1 << SERIAL_IRQ, "The irq is pending.");
+        let claim = board.lw(PLIC_MMIO + 0x201004).unwrap();
+        assert_eq!(claim, SERIAL_IRQ as u32, "Claimed.");
+        assert_eq!(
+            plic_i.has_interrupt(),
+            false,
+            "Interrupt captured but claimed."
+        );
+        assert_ne!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_DATA,
+            0,
+            "Data #1."
+        );
+        let data = board.lb(SERIAL_MMIO + COM_RX * MULTIPLIER).unwrap();
+        assert_eq!(data, DATA, "Data #1 got.");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_ne!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_DATA,
+            0,
+            "Still data."
+        );
+        board.sw(PLIC_MMIO + 0x201004, claim).unwrap();
+        assert_eq!(
+            plic_i.has_interrupt(),
+            true,
+            "We need to handle interrupt again."
+        );
+
+        let pending = board.lw(PLIC_MMIO + 0x1000).unwrap();
+        assert_eq!(pending, 1 << SERIAL_IRQ, "The irq is pending.");
+        let claim = board.lw(PLIC_MMIO + 0x201004).unwrap();
+        assert_eq!(claim, SERIAL_IRQ as u32, "Claimed.");
+        assert_eq!(
+            plic_i.has_interrupt(),
+            false,
+            "Interrupt captured but claimed."
+        );
+        assert_ne!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_DATA,
+            0,
+            "Data #2."
+        );
+        let data = board.lb(SERIAL_MMIO + COM_RX * MULTIPLIER).unwrap();
+        assert_eq!(data, DATA + 1, "Data #2 got.");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        assert_eq!(
+            board.lb(SERIAL_MMIO + COM_LSR * MULTIPLIER).unwrap() & COM_LSR_DATA,
+            0,
+            "No data."
+        );
+        board.sw(PLIC_MMIO + 0x201004, claim).unwrap();
+        assert_eq!(
+            plic_i.has_interrupt(),
+            false,
+            "Handled two interrupts. Exit."
+        );
     }
 }
