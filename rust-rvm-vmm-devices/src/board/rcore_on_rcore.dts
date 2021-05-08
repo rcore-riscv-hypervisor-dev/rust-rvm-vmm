@@ -1,0 +1,20 @@
+/dts-v1/;
+
+/ {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    plic@c000000 {
+        phandle = <9>;
+        reg = <0 0xc000000 0 0x210000>;
+        compatible = "riscv,plic0";
+        #interrupt-cells = <1>;
+        #address-cells = <0>;
+        interrupt-controller = [];
+    };
+    uart@10000000 {
+        interrupts = <10>;
+        interrupt-parent = <9>;
+        reg = <0 0x10000000 0 0x100>;
+        compatible = "ns16550a";
+    };
+};

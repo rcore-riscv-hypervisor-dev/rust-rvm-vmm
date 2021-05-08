@@ -1,7 +1,7 @@
 use super::super::*;
 use super::*;
+use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
-use alloc::vec::Vec;
 use core::sync::atomic::AtomicBool;
 use core::sync::atomic::AtomicU32 as AtomicReg;
 use core::sync::atomic::Ordering::*;
@@ -42,14 +42,14 @@ fn get_bit(reg: &AtomicReg, n: u8) -> bool {
 // PLIC interrupt handler for RISC-V.
 // Maximal 31 interrupts and 2 contexts supported.
 pub struct PLIC {
-    sources: Vec<Arc<dyn IrqDevice>>,
+    sources: BTreeMap<usize, Arc<dyn Device>>,
     interrupts: [PLICInterruptX32; MAXIMAL_INTERRUPT_GROUP],
     contexts: [PLICContext; 2],
     // when claiming: lock.
     claim_searching: Mutex<()>,
 }
 impl PLIC {
-    pub fn new(devices: Vec<Arc<dyn IrqDevice>>) -> Self {
+    pub fn new(devices: BTreeMap<usize, Arc<dyn Device>>) -> Self {
         PLIC {
             sources: devices,
             interrupts: Default::default(),
@@ -64,16 +64,11 @@ impl PLIC {
             .load(Relaxed)
     }
     pub fn update_eip_for_context(&self, ctx: usize) {
-        for i in 0..self.sources.len() {
-            let irq_id = i + 1;
+        for (irq_id, d) in self.sources.iter() {
             let (interrupt_slice, iid) = self
-                .get_interrupt_slice(irq_id)
+                .get_interrupt_slice(*irq_id)
                 .expect("bad device irq assignment");
-            atomic_set_bit(
-                &interrupt_slice.pending,
-                iid as u8,
-                self.sources[i].has_interrupt(),
-            )
+            atomic_set_bit(&interrupt_slice.pending, iid as u8, d.has_interrupt())
         }
         //let claim_lock = self.claim_searching.read();
         let context_slice = self.get_context(ctx).expect("bad context");
@@ -198,6 +193,9 @@ impl PLICMemoryMap {
 
 const VS_CONTEXT: usize = 1;
 impl Device for PLIC {
+    fn as_any(&self) -> &dyn core::any::Any {
+        self
+    }
     fn handle_mmio(&self, offset: usize, access: &mut MMIOAccess) -> Option<bool> {
         use PLICMemoryMap::*;
         if let Some(x) = PLICMemoryMap::parse(offset) {
@@ -273,9 +271,6 @@ impl Device for PLIC {
     fn mmio_region_size(&self) -> usize {
         0x4000000
     }
-}
-
-impl IrqDevice for PLIC {
     fn has_interrupt(&self) -> bool {
         self.update_eip_for_context(VS_CONTEXT);
         self.eip(VS_CONTEXT)
@@ -311,8 +306,10 @@ mod test {
         }
     }
     struct MockDevice(Arc<AtomicBool>);
-    impl Device for MockDevice {}
-    impl IrqDevice for MockDevice {
+    impl Device for MockDevice {
+        fn as_any(&self) -> &dyn core::any::Any {
+            self
+        }
         fn has_interrupt(&self) -> bool {
             self.0.load(Relaxed)
         }
@@ -320,24 +317,27 @@ mod test {
     #[test]
     fn basic_test() {
         let flag = Arc::new(AtomicBool::new(false));
-        let mock = Arc::new(MockDevice(Arc::clone(&flag)));
-        let plic = PLIC::new(vec![mock]);
+        let mock: Arc<dyn Device> = Arc::new(MockDevice(Arc::clone(&flag)));
+        const INTERRUPT_ID: usize = 10;
+        let mut tree = BTreeMap::new();
+        tree.insert(INTERRUPT_ID, mock);
+        let plic = PLIC::new(tree);
         assert_eq!(
             plic.has_interrupt(),
             false,
             "Initially there is no interrupt."
         );
 
-        plic.store(0x2080, plic.load(0x2080).unwrap() | 1 << 1)
+        plic.store(0x2080, plic.load(0x2080).unwrap() | 1 << INTERRUPT_ID)
             .unwrap(); // enable irq for context 1.
-        plic.store(1 * 4, 7).unwrap();
+        plic.store(INTERRUPT_ID * 4, 7).unwrap();
         assert_eq!(plic.has_interrupt(), false, "Still no interrupt.");
         flag.store(true, Relaxed);
         assert_eq!(plic.has_interrupt(), true, "Interrupt captured.");
         let pending = plic.load(0x1000).unwrap();
-        assert_eq!(pending, 2, "The irq is pending.");
+        assert_eq!(pending, 1 << INTERRUPT_ID, "The irq is pending.");
         let claim = plic.load(0x201004).unwrap();
-        assert_eq!(claim, 1, "Claimed.");
+        assert_eq!(claim, INTERRUPT_ID as u32, "Claimed.");
         assert_eq!(
             plic.has_interrupt(),
             false,
@@ -350,14 +350,18 @@ mod test {
             "After complete, the interrupt is there again."
         );
         let claim = plic.load(0x201004).unwrap();
-        assert_eq!(claim, 1, "Claimed #2.");
+        assert_eq!(claim, INTERRUPT_ID as u32, "Claimed #2.");
         assert_eq!(
             plic.has_interrupt(),
             false,
             "Interrupt captured but claimed #2."
         );
+        let another_claim = plic.load(0x201004).unwrap();
+        assert_eq!(another_claim, 0, "Can't claim one interrupt again.");
         flag.store(false, Relaxed);
         plic.store(0x201004, claim);
         assert_eq!(plic.has_interrupt(), false, "Really no interrupt.");
+        let claim = plic.load(0x201004).unwrap();
+        assert_eq!(claim, 0, "No interrupt.");
     }
 }
