@@ -7,20 +7,20 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 /// device tree and mmio bank.
 const SERIAL_IRQ: usize = 10;
-const SERIAL_MMIO: usize = 0x1000000;
+const SERIAL_MMIO: usize = 0x10000000;
 const PLIC_MMIO: usize = 0xc000000;
 
 pub fn rcore_on_rcore(
     blocking_console: Arc<dyn Console>,
-) -> (MMIOBank, Arc<dyn Device>, Arc<dyn Device>, &'static [u8]) {
+) -> (MMIOBank, Arc<dyn Device>, &'static [u8]) {
     let serial: Arc<dyn Device> = Arc::new(Uart16650::new(Arc::clone(&blocking_console)));
     let mut irqtree = BTreeMap::new();
     irqtree.insert(SERIAL_IRQ, Arc::clone(&serial));
     let irc: Arc<dyn Device> = Arc::new(PLIC::new(irqtree));
     let mut bank = MMIOBank::new();
     bank.add_device(PLIC_MMIO, Arc::clone(&irc));
-    bank.add_device(SERIAL_MMIO, Arc::clone(&serial));
-    (bank, irc, serial, include_bytes!("rcore_on_rcore.dtb"))
+    bank.add_device(SERIAL_MMIO, serial);
+    (bank, irc, include_bytes!("rcore_on_rcore.dtb"))
 }
 
 #[cfg(test)]
@@ -115,7 +115,7 @@ mod test {
             .downcast_ref::<SingleCharBufferedConsole<StdChannelConsole>>()
             .unwrap()
             .start(Arc::clone(&console));
-        let (board, plic_i, serial, _) = rcore_on_rcore(Arc::clone(&console));
+        let (board, plic_i, _) = rcore_on_rcore(Arc::clone(&console));
         // storing unrelated registers. taken from rcore.
         board.sb(SERIAL_MMIO + COM_FCR * MULTIPLIER, 0).unwrap();
         board
@@ -248,5 +248,11 @@ mod test {
             false,
             "Handled two interrupts. Exit."
         );
+        board.sb(SERIAL_MMIO + COM_RX * MULTIPLIER, 1).unwrap();
+        board.sb(SERIAL_MMIO + COM_RX * MULTIPLIER, 2).unwrap();
+        board.sb(SERIAL_MMIO + COM_RX * MULTIPLIER, 3).unwrap();
+        board.sb(SERIAL_MMIO + COM_RX * MULTIPLIER, 4).unwrap();
+        board.sb(SERIAL_MMIO + COM_RX * MULTIPLIER, 5).unwrap();
+        assert_eq!(stdconsole.output(), vec![1, 2, 3, 4, 5], "write");
     }
 }

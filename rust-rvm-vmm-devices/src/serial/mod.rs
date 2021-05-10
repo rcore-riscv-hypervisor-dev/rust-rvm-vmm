@@ -36,6 +36,9 @@ impl<T: BlockingConsole + 'static> SingleCharBufferedConsole<T> {
             underlying,
         }
     }
+    pub fn get_underlying(&self) -> Arc<T> {
+        Arc::clone(&self.underlying)
+    }
     pub fn start(&self, real_self: Arc<dyn Console>) {
         let p = Arc::downgrade(&real_self);
         let underlying = Arc::clone(&self.underlying);
