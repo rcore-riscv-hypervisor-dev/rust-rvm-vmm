@@ -1,16 +1,14 @@
 mod bits;
 mod rcore;
-use alloc::sync::Arc;
 use rcore::*;
 use rcore_user::io::*;
 use rcore_user::syscall::*;
 use rvm::MmioPacket;
-use rvm::RvmError as RawRvmError;
 use rvm::RvmExitPacket;
 pub const RVM_IO: usize = 0xAE00;
 pub const RVM_GUEST_CREATE: usize = RVM_IO + 0x01;
 pub const RVM_GUEST_ADD_MEMORY_REGION: usize = RVM_IO + 0x02;
-pub const RVM_GUEST_SET_TRAP: usize = RVM_IO + 0x03;
+//pub const RVM_GUEST_SET_TRAP: usize = RVM_IO + 0x03;
 pub const RVM_VCPU_CREATE: usize = RVM_IO + 0x11;
 pub const RVM_VCPU_RESUME: usize = RVM_IO + 0x12;
 pub const RVM_VCPU_READ_STATE: usize = RVM_IO + 0x13;
@@ -95,7 +93,7 @@ impl RVM {
         return Ok(ret as u16);
     }
     pub fn resume(&self, vcpu_id: u16) -> Result<RvmExitPacket> {
-        let mut args: RvmVcpuResumeArgs = unsafe { core::mem::uninitialized() };
+        let mut args: RvmVcpuResumeArgs = unsafe { core::mem::MaybeUninit::uninit().assume_init() };
         args.vcpu_id = vcpu_id;
         let ret = sys_ioctl(self.fd, RVM_VCPU_RESUME, &mut args as *mut _ as usize);
         if ret < 0 {

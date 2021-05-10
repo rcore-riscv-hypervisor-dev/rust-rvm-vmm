@@ -14,7 +14,7 @@ pub enum MMIOAccess<'a> {
 pub trait Device: Send + Sync {
     /// Try handle mmio.
     /// Return values: Some(true) for success handling, Some(false) for unrelated access, None for malformed access.
-    fn handle_mmio(&self, offset: usize, access: &mut MMIOAccess) -> Option<bool> {
+    fn handle_mmio(&self, _offset: usize, _access: &mut MMIOAccess) -> Option<bool> {
         Some(false)
     }
     // The size eseimation for mmio region of the device.

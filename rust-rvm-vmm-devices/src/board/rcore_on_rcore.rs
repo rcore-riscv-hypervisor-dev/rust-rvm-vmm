@@ -1,6 +1,6 @@
 use crate::irq::plic::PLIC;
 use crate::serial::uart16650::Uart16650;
-use crate::serial::{BlockingConsole, Console, SingleCharBufferedConsole};
+use crate::serial::{Console};
 use crate::Device;
 use crate::MMIOBank;
 use alloc::collections::BTreeMap;

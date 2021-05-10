@@ -1,5 +1,4 @@
 use super::super::*;
-use super::*;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use core::sync::atomic::AtomicBool;
@@ -35,9 +34,7 @@ fn atomic_set_bit(reg: &AtomicReg, n: u8, bit: bool) {
     )
     .unwrap();
 }
-fn get_bit(reg: &AtomicReg, n: u8) -> bool {
-    (reg.load(Relaxed) >> n) > 0
-}
+
 
 // PLIC interrupt handler for RISC-V.
 // Maximal 31 interrupts and 2 contexts supported.
