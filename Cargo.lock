@@ -160,6 +160,7 @@ dependencies = [
 name = "rcore-user"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "buddy_system_allocator",
  "isomorphic_drivers",
  "rlibc",
