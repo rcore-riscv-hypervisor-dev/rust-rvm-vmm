@@ -188,6 +188,7 @@ checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
 [[package]]
 name = "riscv"
 version = "0.6.0"
+source = "git+https://github.com/rcore-riscv-hypervisor-dev/riscv.git?rev=3f5efb1#3f5efb1b8d4ceb12e291ef3d7b27120ea038eb83"
 dependencies = [
  "bare-metal",
  "bit_field 0.10.1",
@@ -247,6 +248,7 @@ checksum = "cb5d2a036dc6d2d8fd16fde3498b04306e29bd193bf306a57427019b823d5acd"
 [[package]]
 name = "rvm"
 version = "1.2.0"
+source = "git+https://github.com/rcore-riscv-hypervisor-dev/RVM?rev=fa31039#fa310395b771590df3c6fc354798037c0ae0e9df"
 dependencies = [
  "bit-set",
  "bit_field 0.10.1",
@@ -266,6 +268,7 @@ dependencies = [
 [[package]]
 name = "rvm_macros"
 version = "0.1.0"
+source = "git+https://github.com/rcore-riscv-hypervisor-dev/RVM?rev=fa31039#fa310395b771590df3c6fc354798037c0ae0e9df"
 dependencies = [
  "quote",
  "syn",
