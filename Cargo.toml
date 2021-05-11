@@ -8,6 +8,6 @@ edition = "2018"
 
 [dependencies]
 rcore-user = {path = "../rust"}
-rvm = {git = "https://github.com/rcore-riscv-hypervisor-dev/RVM", rev = "fa31039"}
+rvm = {git = "https://github.com/rcore-riscv-hypervisor-dev/RVM", rev = "5cde71c"}
 spin = "0.5"
 rust-rvm-vmm-devices = {path = "./rust-rvm-vmm-devices"}
