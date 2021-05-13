@@ -249,7 +249,7 @@ checksum = "cb5d2a036dc6d2d8fd16fde3498b04306e29bd193bf306a57427019b823d5acd"
 [[package]]
 name = "rvm"
 version = "1.2.0"
-source = "git+https://github.com/rcore-riscv-hypervisor-dev/RVM?rev=5cde71c#5cde71c7f4c1a691e12adbe542d28b381bc8e383"
+source = "git+https://github.com/rcore-riscv-hypervisor-dev/RVM?rev=5ccac8b#5ccac8ba6529cf06d5dabb8c137227c36f5ad2eb"
 dependencies = [
  "bit-set",
  "bit_field 0.10.1",
@@ -269,7 +269,7 @@ dependencies = [
 [[package]]
 name = "rvm_macros"
 version = "0.1.0"
-source = "git+https://github.com/rcore-riscv-hypervisor-dev/RVM?rev=5cde71c#5cde71c7f4c1a691e12adbe542d28b381bc8e383"
+source = "git+https://github.com/rcore-riscv-hypervisor-dev/RVM?rev=5ccac8b#5ccac8ba6529cf06d5dabb8c137227c36f5ad2eb"
 dependencies = [
  "quote",
  "syn",
@@ -349,9 +349,9 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.13.6"
+version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "021b49a4cb0a0d9490265cc169ca816014cbf61d3f3b75424815912977b81871"
+checksum = "5fa1f02f6b33489502afe477f7d428cfa1eee22d4a10966e95dfeed96c523d46"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",
